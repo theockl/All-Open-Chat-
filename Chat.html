@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 0; }
+        .container { width: 80%; max-width: 600px; margin-top: 20px; }
+        .hidden { display: none; }
+        .chat-box { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-top: 10px; background-color: #f9f9f9; }
+        .chat-box p { margin: 5px 0; }
+        .online-status { font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Terms of Use -->
+    <div id="terms-page" class="container">
+        <h2>Terms of Use</h2>
+        <p>By using this chat portal, you agree to the following terms and conditions. Please behave respectfully towards other users and refrain from using offensive language. Admins reserve the right to take action in case of violations.</p>
+        <button onclick="acceptTerms()">Accept Terms and Continue</button>
+    </div>
+
+    <!-- Welcome Page -->
+    <div id="welcome-page" class="container hidden">
+        <h2>Welcome to All Open Chat 1.0</h2>
+        <p>Please enter your password:</p>
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- Username Page -->
+    <div id="username-page" class="container hidden">
+        <h2>Assigned Username</h2>
+        <p>Your username is: <span id="assigned-username"></span></p>
+        <button onclick="confirmUsername()">Confirm</button>
+    </div>
+
+    <!-- Chat Page -->
+    <div id="chat-page" class="container hidden">
+        <h2>AOC Chat Area</h2>
+        <div class="online-status" id="online-status">Online: 0 Users</div>
+        <div class="chat-box" id="chat-box"></div>
+        <input type="text" id="message" placeholder="Enter message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        function acceptTerms() {
+            document.getElementById("terms-page").classList.add("hidden");
+            document.getElementById("welcome-page").classList.remove("hidden");
+        }
+
+        let username = localStorage.getItem("username") || "";
+        const bannedUsers = new Set();
+        const messages = JSON.parse(localStorage.getItem("chatMessages")) || [];
+        let onlineUsers = new Set();
+
+        function login() {
+            const password = document.getElementById("password").value;
+            if (password === "007" && !username) {
+                document.getElementById("welcome-page").classList.add("hidden");
+                document.getElementById("username-page").classList.remove("hidden");
+                assignUsername();
+            } else if (password === "007" && username) {
+                document.getElementById("welcome-page").classList.add("hidden");
+                document.getElementById("chat-page").classList.remove("hidden");
+                loadChat();
+            } else {
+                alert("Incorrect password or unauthorized access!");
+            }
+        }
+
+        function assignUsername() {
+            if (!username) {
+                username = `User${Math.floor(Math.random() * 10000)}`;
+                localStorage.setItem("username", username);
+            }
+            document.getElementById("assigned-username").innerText = username;
+        }
+
+        function confirmUsername() {
+            document.getElementById("username-page").classList.add("hidden");
+            document.getElementById("chat-page").classList.remove("hidden");
+            loadChat();
+        }
+
+        function sendMessage() {
+            const message = document.getElementById("message").value;
+            if (message.trim() && !bannedUsers.has(username)) {
+                messages.push({ user: username, text: message });
+                localStorage.setItem("chatMessages", JSON.stringify(messages));
+                updateChatBox();
+                document.getElementById("message").value = "";
+            }
+        }
+
+        function updateChatBox() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = "";
+            messages.forEach((msg, index) => {
+                const messageElement = document.createElement("p");
+                messageElement.textContent = `${msg.user}: ${msg.text}`;
+                
+                // Add a delete button only for the user's own messages
+                if (msg.user === username) {
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Delete";
+                    deleteButton.onclick = () => deleteMessage(index);
+                    messageElement.appendChild(deleteButton);
+                }
+                chatBox.appendChild(messageElement);
+            });
+        }
+
+        function deleteMessage(index) {
+            messages.splice(index, 1);
+            localStorage.setItem("chatMessages", JSON.stringify(messages));
+            updateChatBox();
+        }
+
+        function updateOnlineStatus() {
+            document.getElementById("online-status").innerText = `Online: ${onlineUsers.size}`;
+        }
+
+        window.addEventListener("load", () => {
+            onlineUsers.add(username);
+            updateOnlineStatus();
+            loadChat();
+        });
+
+        window.addEventListener("beforeunload", () => {
+            onlineUsers.delete(username);
+            updateOnlineStatus();
+        });
+
+        function loadChat() {
+            updateChatBox();
+        }
+    </script>
+
+</body>
+</html>
